@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 
-class RegistrationScreen extends StatelessWidget {
+class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
+
+  @override
+  _RegistrationScreenState createState() => _RegistrationScreenState();
+}
+
+class _RegistrationScreenState extends State<RegistrationScreen> {
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
   void _showSuccessDialog(BuildContext context) {
     showDialog(
@@ -16,7 +24,7 @@ class RegistrationScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Image(
-                image: AssetImage('images/akun.gif'), // Replace with your image path
+                image: AssetImage('images/akun.gif'), // Ganti dengan path gambar Anda
                 width: 100,
                 height: 100,
                 fit: BoxFit.cover,
@@ -38,8 +46,8 @@ class RegistrationScreen extends StatelessWidget {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close the dialog
-                  Navigator.pop(context); // Navigate back to login screen
+                  Navigator.pop(context); // Tutup dialog
+                  Navigator.pop(context); // Kembali ke layar login
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
@@ -57,6 +65,24 @@ class RegistrationScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _validatePasswords(BuildContext context) {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Passwords do not match'),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } else {
+      _showSuccessDialog(context); // Tampilkan dialog sukses jika password cocok
+    }
   }
 
   @override
@@ -89,7 +115,16 @@ class RegistrationScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.black),
+                          onPressed: () {
+                            Navigator.pop(context); // Arahkan kembali ke halaman login
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       const Text(
                         'Register',
                         style: TextStyle(
@@ -101,7 +136,7 @@ class RegistrationScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       const Image(
-                        image: AssetImage('images/laptop.gif'), // Replace with your image path
+                        image: AssetImage('images/laptop.gif'), // Ganti dengan path gambar Anda
                         width: 100,
                         height: 100,
                         fit: BoxFit.cover,
@@ -124,6 +159,7 @@ class RegistrationScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
+                              controller: _passwordController,
                               obscureText: true,
                               decoration: InputDecoration(
                                 prefixIcon: const Icon(Icons.lock, color: Colors.black),
@@ -136,10 +172,25 @@ class RegistrationScreen extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _confirmPasswordController,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.lock, color: Colors.black),
+                                labelText: 'Confirm Password',
+                                filled: true,
+                                fillColor: Colors.grey[200],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
                             const SizedBox(height: 24),
                             ElevatedButton(
                               onPressed: () {
-                                _showSuccessDialog(context); // Show the success dialog
+                                _validatePasswords(context); // Validasi password
                               },
                               style: ElevatedButton.styleFrom(
                                 minimumSize: const Size(double.infinity, 50),

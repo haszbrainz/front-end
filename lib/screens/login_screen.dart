@@ -158,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 18),
                             ElevatedButton(
                               onPressed: _login,
                               style: ElevatedButton.styleFrom(
