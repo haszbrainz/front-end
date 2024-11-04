@@ -1,6 +1,9 @@
+// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:responsi_wpk/screens/resgistration_screen.dart';
 import 'package:responsi_wpk/screens/forgot_screen.dart';
+import '../services/auth_service.dart';
+import '../models/user_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,10 +16,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
   bool _isEmailValid = true;
   bool _isPasswordValid = true;
 
-  void _login() {
+  // Fungsi login yang memverifikasi email dan password
+  Future<void> _login() async {
     setState(() {
       _isEmailValid = _emailController.text.isNotEmpty;
       _isPasswordValid = _passwordController.text.isNotEmpty;
@@ -25,24 +30,50 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Email dan password tidak boleh kosong', style: TextStyle(fontFamily: 'Visby')),
+          content: Text(
+            'Email dan password tidak boleh kosong',
+            style: TextStyle(fontFamily: 'Visby'),
+          ),
           backgroundColor: Colors.orange,
         ),
       );
-    } else if (!RegExp(r'\S+@\S+\.\S+').hasMatch(_emailController.text) ||
-        _passwordController.text != "123") {
-      setState(() {
-        _isEmailValid = false;
-        _isPasswordValid = false;
-      });
+      return;
+    }
+
+    try {
+      // Memanggil login dan mendapatkan hasil User atau null
+      User? user = await _authService.login(
+        _emailController.text,
+        _passwordController.text,
+      );
+
+      if (user != null) {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        setState(() {
+          _isEmailValid = false;
+          _isPasswordValid = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Email atau password Anda salah',
+              style: TextStyle(fontFamily: 'Visby'),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email dan password Anda salah', style: TextStyle(fontFamily: 'Visby')),
+        SnackBar(
+          content: Text(
+            'Terjadi kesalahan: $e',
+            style: const TextStyle(fontFamily: 'Visby'),
+          ),
           backgroundColor: Colors.red,
         ),
       );
-    } else {
-      Navigator.pushReplacementNamed(context, '/home');
     }
   }
 

@@ -44,7 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     // Navigasi ke login screen setelah 5 detik
-    Future.delayed(const Duration(seconds: 7), () {
+    Future.delayed(const Duration(seconds: 1), () {
       Navigator.pushReplacementNamed(context, '/login');
     });
   }

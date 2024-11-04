@@ -1,8 +1,40 @@
 import 'package:flutter/material.dart';
-import 'edit_profile_screen.dart'; // Import the EditProfileScreen
+import 'package:shared_preferences/shared_preferences.dart';
+import 'edit_profile_screen.dart';
+import '../services/auth_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String _username = "";
+  String _email = "";
+  String _phone = "";
+  String _address = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = await AuthService().getLoggedInUserEmail();
+    if (email != null) {
+      final userKey = 'user_${email}';
+      setState(() {
+        _username = prefs.getString('${userKey}_name') ?? "Unknown User";
+        _email = email;
+        _phone = prefs.getString('${userKey}_phone') ?? "Phone and address not set";
+        _address = prefs.getString('${userKey}_address') ?? "Update in Manage Account.";
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +57,7 @@ class ProfileScreen extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, // Align to the start for a clean layout
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Center(
               child: CircleAvatar(
@@ -34,10 +66,10 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Center(
+            Center(
               child: Text(
-                'Haszbrainz',
-                style: TextStyle(
+                _username,
+                style: const TextStyle(
                   fontSize: 16,
                   fontFamily: 'Visby',
                   fontWeight: FontWeight.bold,
@@ -45,10 +77,10 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Center(
+            Center(
               child: Text(
-                'hasbi@gmail.com',
-                style: TextStyle(
+                _email,
+                style: const TextStyle(
                   fontSize: 16,
                   fontFamily: 'Visby',
                   fontWeight: FontWeight.normal,
@@ -56,17 +88,28 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Center(
+            Center(
               child: Text(
-                'Yogyakarta',
-                style: TextStyle(
+                _phone,
+                style: const TextStyle(
                   fontSize: 16,
                   fontFamily: 'Visby',
                   fontWeight: FontWeight.normal,
                 ),
               ),
             ),
-            const SizedBox(height: 16), // Space before account settings section
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                _address,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontFamily: 'Visby',
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             const Text(
               'Account Settings',
               style: TextStyle(
@@ -77,11 +120,12 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             GestureDetector(
-              onTap: () {
-                Navigator.push(
+              onTap: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const EditProfileScreen()),
                 );
+                _loadUserData(); // Refresh data after returning from edit screen
               },
               child: _buildSettingOption('Manage Account'),
             ),
