@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../models/user_model.dart';
 import '../services/auth_service.dart';
 
 class RegistrationScreen extends StatefulWidget {
@@ -11,39 +9,19 @@ class RegistrationScreen extends StatefulWidget {
 }
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
-  final AuthService _authService = AuthService();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
 
   // Fungsi untuk memvalidasi input dan membuat akun
   void _validateInputsAndRegister(BuildContext context) async {
-    if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Passwords do not match'),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
-
     try {
-      // Buat instance User berdasarkan input pengguna
-      User newUser = User(
-        name: _usernameController.text, // Masukkan username
-        email: _emailController.text,
-        password: _passwordController.text,
+      // Panggil fungsi register untuk membuat akun
+      await register(
+        _usernameController.text,
+        _emailController.text,
+        _passwordController.text,
       );
-
-      await _authService.createAccount(newUser);
-      await _saveUserData(newUser); // Simpan data ke SharedPreferences
       _showSuccessDialog(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -55,15 +33,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
   }
 
-  // Fungsi untuk menyimpan data pengguna ke SharedPreferences
-  Future<void> _saveUserData(User user) async {
-    final prefs = await SharedPreferences.getInstance();
-    final userKey = 'user_${user.email}';
-
-    await prefs.setString('${userKey}_name', user.name); // Simpan nama
-    await prefs.setString('${userKey}_email', user.email); // Simpan email
-  }
-
+  // Fungsi untuk menampilkan dialog sukses setelah registrasi
   void _showSuccessDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -214,21 +184,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               decoration: InputDecoration(
                                 prefixIcon: const Icon(Icons.lock, color: Colors.black),
                                 labelText: 'Password',
-                                filled: true,
-                                fillColor: Colors.grey[200],
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _confirmPasswordController,
-                              obscureText: true,
-                              decoration: InputDecoration(
-                                prefixIcon: const Icon(Icons.lock, color: Colors.black),
-                                labelText: 'Confirm Password',
                                 filled: true,
                                 fillColor: Colors.grey[200],
                                 border: OutlineInputBorder(

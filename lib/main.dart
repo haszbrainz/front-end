@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:responsi_wpk/screens/login_screen.dart';
-import 'package:responsi_wpk/screens/home_screen.dart';
+import 'package:responsi_wpk/screens/resgistration_screen.dart';
+import 'package:responsi_wpk/screens/home_screen.dart'; // Mengimpor HomeScreen
 
 void main() {
   runApp(const MyApp());
@@ -25,7 +25,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
-        '/home': (context) => HomeScreen(),
+        '/register': (context) => const RegistrationScreen(), // Tambahkan route untuk Register
+        '/home': (context) => const HomeScreen(),
       },
     );
   }
@@ -43,7 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Navigasi ke login screen setelah 5 detik
+    // Navigasi ke login screen setelah 1 detik
     Future.delayed(const Duration(seconds: 1), () {
       Navigator.pushReplacementNamed(context, '/login');
     });
@@ -78,7 +79,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  fontFamily: 'visby'
+                  fontFamily: 'Visby',
                 ),
               ),
             ],

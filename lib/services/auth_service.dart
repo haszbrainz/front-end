@@ -1,94 +1,104 @@
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../models/user_model.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-class AuthService {
-  // Register a new user and save their profile in SharedPreferences
-  Future<void> createAccount(User user) async {
-    final prefs = await SharedPreferences.getInstance();
-    final userKey = 'user_${user.email}';
+const secureStorage = FlutterSecureStorage();
 
-    if (prefs.containsKey(userKey)) {
-      throw Exception('User already exists');
-    }
+// Base URL untuk API (bisa disesuaikan untuk produksi atau pengujian)
+const String baseUrl = "http://192.168.1.108:8000/api";
 
-    // Save the user's data in JSON format with empty bookings and address
-    User newUser = User(
-      name: user.name,
-      email: user.email,
-      password: user.password,
-      bookings: [],
-      address: '',
+// Fungsi untuk login
+Future<void> login(String email, String password) async {
+  final url = Uri.parse("$baseUrl/auth/login");
+
+  try {
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: json.encode({
+        "email": email,
+        "password": password,
+      }),
     );
-    prefs.setString(userKey, jsonEncode(newUser.toMap()));
-  }
 
-  // Login and retrieve the user's data
-  Future<User?> login(String email, String password) async {
-    final prefs = await SharedPreferences.getInstance();
-    final userKey = 'user_$email';
+    if (response.statusCode == 201) {
+      final data = json.decode(response.body);
+      final accessToken = data['token']['access_token'];
 
-    if (!prefs.containsKey(userKey)) {
-      return null; // Return null if user is not found
+      // Menyimpan access token di Flutter Secure Storage
+      await secureStorage.write(key: 'access_token', value: accessToken);
+      print('Access token berhasil disimpan!');
+    } else {
+      final error = json.decode(response.body);
+      throw Exception("Login gagal: ${error['message'] ?? 'Kesalahan server'}");
     }
+  } catch (e) {
+    throw Exception("Login gagal: $e");
+  }
+}
 
-    final userData = jsonDecode(prefs.getString(userKey)!);
-    final user = User.fromMap(userData);
+// Fungsi untuk mengambil data yang dilindungi dengan token
+Future<String> fetchProtectedData() async {
+  final accessToken = await secureStorage.read(key: 'access_token');
 
-    if (user.password != password) {
-      return null; // Return null if password is invalid
+  if (accessToken == null) {
+    throw Exception("Access token tidak ditemukan. Silakan login ulang.");
+  }
+
+  final url = Uri.parse("$baseUrl/user/me");
+
+  try {
+    final response = await http.get(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $accessToken",
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return response.body;
+    } else if (response.statusCode == 401) {
+      throw Exception("Access token tidak valid atau expired. Silakan login ulang.");
+    } else {
+      final error = json.decode(response.body);
+      throw Exception("Kesalahan: ${error['message'] ?? 'Kesalahan server'}");
     }
-
-    // Save logged-in user's email for session management
-    await prefs.setString('loggedInUser', email);
-
-    return user;
+  } catch (e) {
+    throw Exception("Terjadi kesalahan: $e");
   }
+}
 
-  // Retrieve email of the logged-in user
-  Future<String?> getLoggedInUserEmail() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('loggedInUser');
-  }
+// Fungsi untuk logout (menghapus token)
+Future<void> logout() async {
+  await secureStorage.delete(key: 'access_token');
+  print("Access token berhasil dihapus.");
+}
 
-  // Update user profile (phone, address, bookings)
-  Future<void> updateUser(User user) async {
-    final prefs = await SharedPreferences.getInstance();
-    final userKey = 'user_${user.email}';
-    prefs.setString(userKey, jsonEncode(user.toMap()));
-  }
+// Fungsi untuk registrasi pengguna baru
+Future<void> register(String name, String email, String password) async {
+  final url = Uri.parse("$baseUrl/auth/register");
 
-  // Add a booking for the current user
-  Future<void> addBooking(String email, Map<String, String> booking) async {
-    final prefs = await SharedPreferences.getInstance();
-    final userKey = 'user_$email';
+  try {
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: json.encode({
+        "name": name,
+        "email": email,
+        "password": password,
+        "password_confirmation": password,
+      }),
+    );
 
-    if (!prefs.containsKey(userKey)) {
-      return; // Exit if user is not found
+    if (response.statusCode == 201) {
+      final data = json.decode(response.body);
+      print('Registrasi berhasil: ${data['message']}');
+    } else {
+      final error = json.decode(response.body);
+      throw Exception("Registrasi gagal: ${error['message'] ?? 'Kesalahan server'}");
     }
-
-    final userData = jsonDecode(prefs.getString(userKey)!);
-    final user = User.fromMap(userData);
-
-    // Add the booking to the user's list of bookings
-    user.bookings.add(booking);
-
-    // Update the user's data in SharedPreferences
-    prefs.setString(userKey, jsonEncode(user.toMap()));
-  }
-
-  // Retrieve user bookings
-  Future<List<Map<String, String>>> getUserBookings(String email) async {
-    final prefs = await SharedPreferences.getInstance();
-    final userKey = 'user_$email';
-
-    if (!prefs.containsKey(userKey)) {
-      return []; // Return an empty list if user is not found
-    }
-
-    final userData = jsonDecode(prefs.getString(userKey)!);
-    final user = User.fromMap(userData);
-
-    return user.bookings;
+  } catch (e) {
+    throw Exception("Registrasi gagal: $e");
   }
 }

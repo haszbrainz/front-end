@@ -1,9 +1,10 @@
-// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:responsi_wpk/screens/resgistration_screen.dart';
 import 'package:responsi_wpk/screens/forgot_screen.dart';
-import '../services/auth_service.dart';
-import '../models/user_model.dart';
+import 'package:responsi_wpk/services/auth_service.dart'; // Mengimpor fungsi login
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+const secureStorage = FlutterSecureStorage();
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,11 +17,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final AuthService _authService = AuthService();
   bool _isEmailValid = true;
   bool _isPasswordValid = true;
+  bool _isLoading = false;
 
-  // Fungsi login yang memverifikasi email dan password
+  // Fungsi login yang memanggil AuthService dan menyimpan token di secure storage
   Future<void> _login() async {
     setState(() {
       _isEmailValid = _emailController.text.isNotEmpty;
@@ -40,31 +41,18 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    try {
-      // Memanggil login dan mendapatkan hasil User atau null
-      User? user = await _authService.login(
-        _emailController.text,
-        _passwordController.text,
-      );
+    setState(() {
+      _isLoading = true; // Menunjukkan indikator loading
+    });
 
-      if (user != null) {
-        Navigator.pushReplacementNamed(context, '/home');
-      } else {
-        setState(() {
-          _isEmailValid = false;
-          _isPasswordValid = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Email atau password Anda salah',
-              style: TextStyle(fontFamily: 'Visby'),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    try {
+      // Memanggil fungsi login dari AuthService
+      await login(_emailController.text, _passwordController.text);
+
+      // Jika login berhasil, arahkan ke halaman utama
+      Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
+      // Menampilkan pesan kesalahan jika login gagal
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -74,7 +62,17 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      setState(() {
+        _isLoading = false; // Selesai loading
+      });
     }
+  }
+
+  // Fungsi untuk mengecek apakah token ada atau sudah expired
+  Future<bool> _checkToken() async {
+    final token = await secureStorage.read(key: 'access_token');
+    return token != null;
   }
 
   @override
@@ -148,6 +146,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: TextStyle(
                                 color: _isEmailValid ? Colors.black : Colors.red,
                               ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Email tidak boleh kosong';
+                                } else if (!value.endsWith('@gmail.com')) {
+                                  return 'Email harus menggunakan domain @gmail.com';
+                                }
+                                return null;
+                              },
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
@@ -170,6 +176,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: TextStyle(
                                 color: _isPasswordValid ? Colors.black : Colors.red,
                               ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Password tidak boleh kosong';
+                                } else if (value.length < 7) {
+                                  return 'Password minimal 7 karakter';
+                                }
+                                return null;
+                              },
                             ),
                             const SizedBox(height: 16),
                             Row(
@@ -191,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 18),
                             ElevatedButton(
-                              onPressed: _login,
+                              onPressed: _isLoading ? null : _login, // Disable tombol jika loading
                               style: ElevatedButton.styleFrom(
                                 minimumSize: const Size(double.infinity, 50),
                                 backgroundColor: Colors.black,
@@ -200,14 +214,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Login',
-                                style: TextStyle(
-                                  fontFamily: 'Visby',
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              child: _isLoading 
+                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  : const Text(
+                                      'Login',
+                                      style: TextStyle(
+                                        fontFamily: 'Visby',
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             ),
                             const SizedBox(height: 12),
                             TextButton(
